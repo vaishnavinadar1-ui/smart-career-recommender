@@ -6,15 +6,29 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score
 
 # -------------------------------
-# PAGE CONFIG
+# PAGE CONFIG (FORCE DESKTOP STYLE)
 # -------------------------------
-st.set_page_config(page_title="AI Career Recommender", page_icon="🚀", layout="centered")
+st.set_page_config(
+    page_title="AI Career Recommender",
+    page_icon="🚀",
+    layout="wide"   # important for desktop-like layout
+)
 
 # -------------------------------
-# HEADER (MOBILE FRIENDLY)
+# FORCE DESKTOP WIDTH ON MOBILE
 # -------------------------------
 st.markdown("""
 <style>
+
+/* MAIN CONTAINER WIDTH FIX */
+.block-container {
+    max-width: 1200px !important;
+    padding-top: 2rem;
+    padding-left: 2rem;
+    padding-right: 2rem;
+}
+
+/* HEADER STYLE */
 .hero {
     text-align: center;
     padding: 10px 5px;
@@ -31,16 +45,32 @@ st.markdown("""
     font-size: 16px;
 }
 
-/* MOBILE VIEW */
+/* FORCE COLUMNS NOT TO STACK ON MOBILE */
 @media only screen and (max-width: 768px) {
+    .block-container {
+        max-width: 1200px !important;
+        padding-left: 2rem !important;
+        padding-right: 2rem !important;
+    }
+
+    div[data-testid="stHorizontalBlock"] {
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+    }
+
+    div[data-testid="column"] {
+        min-width: 220px !important;
+    }
+
     .hero h1 {
-        font-size: 24px;
+        font-size: 28px;
     }
 
     .hero p {
-        font-size: 13px;
+        font-size: 14px;
     }
 }
+
 </style>
 
 <div class="hero">
@@ -81,7 +111,7 @@ model.fit(X, y)
 accuracy = cross_val_score(model, X, y, cv=5).mean()
 
 # -------------------------------
-# INPUT UI
+# INPUT UI (3 COLUMNS ALWAYS INLINE)
 # -------------------------------
 st.markdown("### 🧠 Your Profile")
 
