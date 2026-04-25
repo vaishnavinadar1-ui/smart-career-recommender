@@ -6,76 +6,21 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score
 
 # -------------------------------
-# PAGE CONFIG (FORCE DESKTOP STYLE)
+# PAGE CONFIG
 # -------------------------------
 st.set_page_config(
     page_title="AI Career Recommender",
     page_icon="🚀",
-    layout="wide"   # important for desktop-like layout
+    layout="centered"
 )
 
 # -------------------------------
-# FORCE DESKTOP WIDTH ON MOBILE
+# HEADER (RESPONSIVE)
 # -------------------------------
 st.markdown("""
-<style>
-
-/* MAIN CONTAINER WIDTH FIX */
-.block-container {
-    max-width: 1200px !important;
-    padding-top: 2rem;
-    padding-left: 2rem;
-    padding-right: 2rem;
-}
-
-/* HEADER STYLE */
-.hero {
-    text-align: center;
-    padding: 10px 5px;
-}
-
-.hero h1 {
-    font-size: 36px;
-    margin-bottom: 5px;
-    font-weight: 700;
-}
-
-.hero p {
-    color: gray;
-    font-size: 16px;
-}
-
-/* FORCE COLUMNS NOT TO STACK ON MOBILE */
-@media only screen and (max-width: 768px) {
-    .block-container {
-        max-width: 1200px !important;
-        padding-left: 2rem !important;
-        padding-right: 2rem !important;
-    }
-
-    div[data-testid="stHorizontalBlock"] {
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-    }
-
-    div[data-testid="column"] {
-        min-width: 220px !important;
-    }
-
-    .hero h1 {
-        font-size: 28px;
-    }
-
-    .hero p {
-        font-size: 14px;
-    }
-}
-
-</style>
-
-<div class="hero">
-    <h1>🚀 AI Career Recommendation System</h1>
-    <p>Discover your perfect career using AI</p>
+<div style="text-align:center; padding:10px;">
+    <h1 style="font-size:32px;">🚀 AI Career Recommendation System</h1>
+    <p style="color:gray; font-size:14px;">Discover your perfect career using AI</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -111,35 +56,33 @@ model.fit(X, y)
 accuracy = cross_val_score(model, X, y, cv=5).mean()
 
 # -------------------------------
-# INPUT UI (3 COLUMNS ALWAYS INLINE)
+# RESPONSIVE INPUT UI
 # -------------------------------
 st.markdown("### 🧠 Your Profile")
 
-col1, col2, col3 = st.columns(3)
+is_mobile = st.session_state.get("mobile", False)
 
-with col1:
-    interest = st.selectbox("🎯 Interest", df['Interest'].unique())
+# Detect mobile by screen width trick (simple fallback)
+# Streamlit can't truly detect screen size, so we keep safe layout
 
-with col2:
-    skill = st.selectbox("💻 Skill", df['Skill'].unique())
+col1 = st.container()
+col2 = st.container()
+col3 = st.container()
 
-with col3:
-    personality = st.selectbox("🧩 Personality", df['Personality'].unique())
+interest = st.selectbox("🎯 Interest", df['Interest'].unique())
+skill = st.selectbox("💻 Skill", df['Skill'].unique())
+personality = st.selectbox("🧩 Personality", df['Personality'].unique())
 
 # -------------------------------
 # BUTTON
 # -------------------------------
-st.markdown("<br>", unsafe_allow_html=True)
-
-center = st.columns([1, 2, 1])
-with center[1]:
-    clicked = st.button("🚀 Analyze My Career")
+clicked = st.button("🚀 Analyze My Career")
 
 # -------------------------------
 # RESULT
 # -------------------------------
 if clicked:
-    with st.spinner("🤖 AI is analyzing your profile..."):
+    with st.spinner("AI is analyzing your profile..."):
 
         input_data = [[
             le_i.transform([interest])[0],
@@ -153,49 +96,41 @@ if clicked:
         career_ml = le_c.inverse_transform(prediction)[0]
         confidence = max(probs) * 100
 
-        # -------------------------------
         # RESULT CARD
-        # -------------------------------
         st.markdown(f"""
         <div style="
             background: linear-gradient(135deg, #6366F1, #8B5CF6);
-            padding:25px;
+            padding:20px;
             border-radius:15px;
             color:white;
             text-align:center;
         ">
-            <h2>🎯 {career_ml}</h2>
-            <p>Best Career Match for You</p>
+            <h2>{career_ml}</h2>
+            <p>Best Career Match</p>
         </div>
         """, unsafe_allow_html=True)
 
-        # -------------------------------
         # CONFIDENCE
-        # -------------------------------
         st.write("### 📊 Confidence Score")
         st.progress(int(confidence))
         st.write(f"{confidence:.2f}% match")
 
-        # -------------------------------
-        # TOP 3 CAREERS
-        # -------------------------------
-        st.write("### 📊 Career Match Visualization")
+        # TOP CAREERS
+        st.write("### 📊 Top Matches")
 
         top_idx = probs.argsort()[-3:][::-1]
         careers = [le_c.inverse_transform([i])[0] for i in top_idx]
         values = [probs[i] * 100 for i in top_idx]
 
-        chart_df = pd.DataFrame({
+        fig_df = pd.DataFrame({
             "Career": careers,
             "Match %": values
         })
 
-        fig = px.bar(chart_df, x="Career", y="Match %", title="Top Career Matches")
+        fig = px.bar(fig_df, x="Career", y="Match %")
         st.plotly_chart(fig, use_container_width=True)
 
-        # -------------------------------
-        # MODEL ACCURACY
-        # -------------------------------
+        # ACCURACY
         st.write("### 📈 Model Accuracy")
         st.write(f"{accuracy * 100:.2f}%")
 
@@ -203,8 +138,4 @@ if clicked:
 # FOOTER
 # -------------------------------
 st.markdown("---")
-st.markdown("""
-    <div style='text-align:center; color:gray; font-size:13px;'>
-        ✨ Built by Vaishnavi Nadar • AI Career Recommender
-    </div>
-""", unsafe_allow_html=True)
+st.markdown("<center style='color:gray;'>Built by Vaishnavi Nadar</center>", unsafe_allow_html=True)
