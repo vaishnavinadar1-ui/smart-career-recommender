@@ -1,12 +1,31 @@
 import streamlit as st
 import pandas as pd
+import time
+import numpy as np
+import matplotlib.pyplot as plt
+
 from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, confusion_matrix
 
 # ---------------- CONFIG ----------------
 st.set_page_config(page_title="AI Career Guide", page_icon="🤖")
 
-# ---------------- CSS (DARK + LIGHT SAFE) ----------------
+# ---------------- TYPING ANIMATION ----------------
+def type_writer(text, speed=0.02):
+    placeholder = st.empty()
+    typed = ""
+
+    for char in text:
+        typed += char
+        placeholder.markdown(
+            f'<div class="bot-box">{typed}</div>',
+            unsafe_allow_html=True
+        )
+        time.sleep(speed)
+
+# ---------------- CSS ----------------
 st.markdown("""
 <style>
 
@@ -48,11 +67,6 @@ st.markdown("""
     height: 45px;
 }
 
-/* Caption fix */
-[data-testid="stCaption"] {
-    color: var(--text-color);
-}
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -63,7 +77,7 @@ st.caption("Find your best career match in seconds")
 # ---------------- LOAD DATA ----------------
 df = pd.read_csv("career_data.csv")
 
-# ---------------- ML SETUP ----------------
+# ---------------- ENCODERS ----------------
 le_i = LabelEncoder()
 le_s = LabelEncoder()
 le_p = LabelEncoder()
@@ -77,8 +91,17 @@ df['Career_enc'] = le_c.fit_transform(df['Career'])
 X = df[['Interest_enc','Skill_enc','Personality_enc']]
 y = df['Career_enc']
 
+# ---------------- TRAIN TEST SPLIT ----------------
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
 model = RandomForestClassifier()
-model.fit(X, y)
+model.fit(X_train, y_train)
+
+# ---------------- EVALUATION ----------------
+y_pred = model.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
+
+cm = confusion_matrix(y_test, y_pred)
 
 # ---------------- SESSION ----------------
 if "step" not in st.session_state:
@@ -89,7 +112,7 @@ if st.session_state.step == 1:
     st.markdown('<div class="bot-box">What are you interested in?</div>', unsafe_allow_html=True)
     
     interest = st.selectbox("", df['Interest'].unique())
-    
+
     if st.button("Next"):
         st.session_state.interest = interest
         st.session_state.step = 2
@@ -100,7 +123,7 @@ elif st.session_state.step == 2:
     st.markdown('<div class="bot-box">What is your skill?</div>', unsafe_allow_html=True)
 
     skill = st.selectbox("", df['Skill'].unique())
-    
+
     if st.button("Next"):
         st.session_state.skill = skill
         st.session_state.step = 3
@@ -119,6 +142,7 @@ elif st.session_state.step == 3:
 
 # ---------------- RESULT ----------------
 elif st.session_state.step == 4:
+
     st.markdown(f'<div class="user-box">{st.session_state.interest}</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="user-box">{st.session_state.skill}</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="user-box">{st.session_state.personality}</div>', unsafe_allow_html=True)
@@ -129,13 +153,43 @@ elif st.session_state.step == 4:
         le_p.transform([st.session_state.personality])[0]
     ]]
 
+    # ---------------- PREDICTION ----------------
     pred = model.predict(input_data)
+    proba = model.predict_proba(input_data)
+
     career = le_c.inverse_transform(pred)[0]
+    confidence = np.max(proba) * 100
 
-    st.markdown(f'<div class="bot-box">🎯 Your best career is <b>{career}</b></div>', unsafe_allow_html=True)
+    # ---------------- THINKING ----------------
+    with st.spinner("Analyzing your profile..."):
+        time.sleep(1)
 
-    # Extra explanation
-    st.markdown('<div class="bot-box">This matches your interest, skill, and personality combination.</div>', unsafe_allow_html=True)
+    # ---------------- RESULT ----------------
+    type_writer(f"🎯 Your best career is {career} ({confidence:.1f}% match)")
+
+    # ---------------- AI EXPLANATION ----------------
+    explanation = f"""
+    💡 Why this career?
+
+    ✔ Your interest in {st.session_state.interest} aligns with this role  
+    ✔ Your skill in {st.session_state.skill} is highly relevant  
+    ✔ Your personality fits the working style of this career  
+    ✔ Based on historical data patterns, this combination performs strongly
+    """
+
+    type_writer(explanation, 0.01)
+
+    # ---------------- MODEL ACCURACY ----------------
+    st.markdown("### 📊 Model Performance")
+    st.write(f"✅ Accuracy: **{accuracy*100:.2f}%**")
+
+    # ---------------- CONFUSION MATRIX ----------------
+    fig, ax = plt.subplots()
+    ax.imshow(cm)
+    ax.set_title("Confusion Matrix")
+    ax.set_xlabel("Predicted")
+    ax.set_ylabel("Actual")
+    st.pyplot(fig)
 
     if st.button("🔄 Start Again"):
         st.session_state.step = 1
