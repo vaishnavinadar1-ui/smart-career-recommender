@@ -5,31 +5,93 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
 
 # ---------------- PAGE CONFIG ----------------
-st.set_page_config(
-    page_title="AI Career Recommender",
-    page_icon="🚀",
-    layout="centered"
-)
+st.set_page_config(page_title="AI Career App", page_icon="🚀", layout="centered")
 
-# ---------------- TITLE ----------------
-st.title("🚀 AI Career Recommendation System")
-st.caption("Discover your perfect career using AI")
+# ---------------- CUSTOM CSS ----------------
+st.markdown("""
+<style>
 
-st.markdown("---")
+/* Background */
+body {
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+}
+
+/* Main container */
+.block-container {
+    padding-top: 2rem;
+}
+
+/* Title */
+.title {
+    text-align: center;
+    font-size: 30px;
+    font-weight: bold;
+    color: white;
+}
+
+/* Subtitle */
+.subtitle {
+    text-align: center;
+    color: #cbd5e1;
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+/* Card style */
+.card {
+    background: #1e293b;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0px 4px 20px rgba(0,0,0,0.3);
+    margin-bottom: 20px;
+}
+
+/* Button */
+.stButton>button {
+    background-color: #6366f1;
+    color: white;
+    border-radius: 10px;
+    height: 50px;
+    width: 100%;
+    font-size: 16px;
+}
+
+/* Success box */
+.stSuccess {
+    border-radius: 10px;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .title {
+        font-size: 22px;
+    }
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# ---------------- HEADER ----------------
+st.markdown("""
+<div class="title">🚀 AI Career Recommendation System</div>
+<div class="subtitle">Discover your perfect career using AI</div>
+""", unsafe_allow_html=True)
 
 # ---------------- LOAD DATA ----------------
 df = pd.read_csv("career_data.csv")
 
-# ---------------- USER INPUT ----------------
+# ---------------- INPUT CARD ----------------
+st.markdown('<div class="card">', unsafe_allow_html=True)
+
 st.subheader("🧠 Your Profile")
 
-interest = st.selectbox("🎯 Select your Interest", df['Interest'].unique())
-skill = st.selectbox("💻 Select your Skill", df['Skill'].unique())
-personality = st.selectbox("🧩 Select your Personality", df['Personality'].unique())
+interest = st.selectbox("🎯 Interest", df['Interest'].unique())
+skill = st.selectbox("💻 Skill", df['Skill'].unique())
+personality = st.selectbox("🧩 Personality", df['Personality'].unique())
 
-st.markdown("---")
+st.markdown('</div>', unsafe_allow_html=True)
 
-# ---------------- ML MODEL ----------------
+# ---------------- MODEL ----------------
 le_interest = LabelEncoder()
 le_skill = LabelEncoder()
 le_personality = LabelEncoder()
@@ -49,30 +111,28 @@ model.fit(X, y)
 # ---------------- BUTTON ----------------
 if st.button("🔍 Get Recommendation"):
 
-    st.markdown("### 🤖 AI Result")
-
-    # Encode user input
     input_data = [[
         le_interest.transform([interest])[0],
         le_skill.transform([skill])[0],
         le_personality.transform([personality])[0]
     ]]
 
-    # Prediction
     prediction = model.predict(input_data)
     career_ml = le_career.inverse_transform(prediction)[0]
-
-    # Probabilities
     probs = model.predict_proba(input_data)[0]
 
-    # ---------------- OUTPUT ----------------
-    st.success(f"🎯 Recommended Career: **{career_ml}**")
+    # ---------------- RESULT CARD ----------------
+    st.markdown('<div class="card">', unsafe_allow_html=True)
 
-    confidence = max(probs) * 100
-    st.write(f"📊 Confidence Score: **{confidence:.2f}%**")
+    st.success(f"🎯 Recommended Career: {career_ml}")
+    st.write(f"📊 Confidence: {max(probs)*100:.2f}%")
 
-    # ---------------- CHART ----------------
-    st.write("### 📈 Career Probability Distribution")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # ---------------- CHART CARD ----------------
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+
+    st.write("📈 Career Probability")
 
     prob_df = pd.DataFrame({
         "Career": le_career.classes_,
@@ -82,39 +142,27 @@ if st.button("🔍 Get Recommendation"):
     fig = px.bar(prob_df, x="Career", y="Probability")
     st.plotly_chart(fig, use_container_width=True)
 
-    # ---------------- INSIGHTS ----------------
-    st.write("### 🧠 AI Insights")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # ---------------- INSIGHTS CARD ----------------
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+
+    st.write("🧠 AI Insights")
 
     if interest == "Data":
-        st.write("👉 You are inclined towards data-driven roles")
+        st.write("👉 You prefer data-driven roles")
 
     if skill in ["Python", "SQL", "Excel"]:
-        st.write("👉 You have strong analytical/technical skills")
+        st.write("👉 Strong analytical/technical skills detected")
 
     if personality == "Analytical":
-        st.write("👉 Analytical mindset suits problem-solving careers")
+        st.write("👉 Analytical mindset fits problem-solving careers")
 
-    # ---------------- CAREER INFO ----------------
-    career_info = {
-        "Data Analyst": "Works with data to generate insights and support business decisions.",
-        "Business Analyst": "Bridges business needs with data-driven solutions.",
-        "ML Engineer": "Builds machine learning models and AI systems.",
-        "Marketing Manager": "Handles brand promotion and marketing strategies."
-    }
-
-    st.write("### 📘 About this Career")
-    st.info(career_info.get(career_ml, "No description available"))
-
-    # ---------------- SUMMARY ----------------
-    st.write("### 🎯 Why this fits you")
-
-    st.write(f"""
-    ✔ Based on your interest in **{interest}**  
-    ✔ Your skill in **{skill}**  
-    ✔ Your **{personality}** personality  
-    👉 This career aligns well with your profile
-    """)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------- FOOTER ----------------
-st.markdown("---")
-st.caption("✨ Built by Vaishnavi Nadar | AI Career Recommender")
+st.markdown("""
+<div style="text-align:center; color:gray; margin-top:20px;">
+✨ Built by Vaishnavi Nadar
+</div>
+""", unsafe_allow_html=True)
