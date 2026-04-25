@@ -3,149 +3,118 @@ import pandas as pd
 import plotly.express as px
 from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import cross_val_score
 
-# -------------------------------
-# PAGE CONFIG
-# -------------------------------
-st.set_page_config(page_title="AI Career Recommender", page_icon="🚀", layout="centered")
+# ---------------- PAGE CONFIG ----------------
+st.set_page_config(
+    page_title="AI Career Recommender",
+    page_icon="🚀",
+    layout="centered"
+)
 
-# -------------------------------
-# HEADER
-# -------------------------------
-st.markdown("""
-    <div style='text-align:center'>
-        <h1>🚀 AI Career Recommendation System</h1>
-        <p style='color:gray;'>Discover your perfect career using AI</p>
-    </div>
-""", unsafe_allow_html=True)
+# ---------------- TITLE ----------------
+st.title("🚀 AI Career Recommendation System")
+st.caption("Discover your perfect career using AI")
 
 st.markdown("---")
 
-# -------------------------------
-# LOAD DATA
-# -------------------------------
+# ---------------- LOAD DATA ----------------
 df = pd.read_csv("career_data.csv")
 
-# -------------------------------
-# ENCODING
-# -------------------------------
-le_i = LabelEncoder()
-le_s = LabelEncoder()
-le_p = LabelEncoder()
-le_c = LabelEncoder()
+# ---------------- USER INPUT ----------------
+st.subheader("🧠 Your Profile")
 
-df['Interest_enc'] = le_i.fit_transform(df['Interest'])
-df['Skill_enc'] = le_s.fit_transform(df['Skill'])
-df['Personality_enc'] = le_p.fit_transform(df['Personality'])
-df['Career_enc'] = le_c.fit_transform(df['Career'])
+interest = st.selectbox("🎯 Select your Interest", df['Interest'].unique())
+skill = st.selectbox("💻 Select your Skill", df['Skill'].unique())
+personality = st.selectbox("🧩 Select your Personality", df['Personality'].unique())
 
-X = df[['Interest_enc','Skill_enc','Personality_enc']]
+st.markdown("---")
+
+# ---------------- ML MODEL ----------------
+le_interest = LabelEncoder()
+le_skill = LabelEncoder()
+le_personality = LabelEncoder()
+le_career = LabelEncoder()
+
+df['Interest_enc'] = le_interest.fit_transform(df['Interest'])
+df['Skill_enc'] = le_skill.fit_transform(df['Skill'])
+df['Personality_enc'] = le_personality.fit_transform(df['Personality'])
+df['Career_enc'] = le_career.fit_transform(df['Career'])
+
+X = df[['Interest_enc', 'Skill_enc', 'Personality_enc']]
 y = df['Career_enc']
 
-# -------------------------------
-# MODEL (Random Forest)
-# -------------------------------
-model = RandomForestClassifier()
+model = RandomForestClassifier(n_estimators=100, random_state=42)
 model.fit(X, y)
 
-accuracy = cross_val_score(model, X, y, cv=5).mean()
+# ---------------- BUTTON ----------------
+if st.button("🔍 Get Recommendation"):
 
-# -------------------------------
-# INPUT UI
-# -------------------------------
-st.markdown("### 🧠 Your Profile")
+    st.markdown("### 🤖 AI Result")
 
-col1, col2, col3 = st.columns(3)
+    # Encode user input
+    input_data = [[
+        le_interest.transform([interest])[0],
+        le_skill.transform([skill])[0],
+        le_personality.transform([personality])[0]
+    ]]
 
-with col1:
-    interest = st.selectbox("🎯 Interest", df['Interest'].unique())
+    # Prediction
+    prediction = model.predict(input_data)
+    career_ml = le_career.inverse_transform(prediction)[0]
 
-with col2:
-    skill = st.selectbox("💻 Skill", df['Skill'].unique())
+    # Probabilities
+    probs = model.predict_proba(input_data)[0]
 
-with col3:
-    personality = st.selectbox("🧩 Personality", df['Personality'].unique())
+    # ---------------- OUTPUT ----------------
+    st.success(f"🎯 Recommended Career: **{career_ml}**")
 
-# -------------------------------
-# BUTTON
-# -------------------------------
-st.markdown("<br>", unsafe_allow_html=True)
+    confidence = max(probs) * 100
+    st.write(f"📊 Confidence Score: **{confidence:.2f}%**")
 
-center = st.columns([1,2,1])
-with center[1]:
-    clicked = st.button("🚀 Analyze My Career")
+    # ---------------- CHART ----------------
+    st.write("### 📈 Career Probability Distribution")
 
-# -------------------------------
-# RESULT
-# -------------------------------
-if clicked:
-    with st.spinner("🤖 AI is analyzing your profile..."):
+    prob_df = pd.DataFrame({
+        "Career": le_career.classes_,
+        "Probability": probs
+    }).sort_values(by="Probability", ascending=False)
 
-        input_data = [[
-            le_i.transform([interest])[0],
-            le_s.transform([skill])[0],
-            le_p.transform([personality])[0]
-        ]]
+    fig = px.bar(prob_df, x="Career", y="Probability")
+    st.plotly_chart(fig, use_container_width=True)
 
-        prediction = model.predict(input_data)
-        probs = model.predict_proba(input_data)[0]
+    # ---------------- INSIGHTS ----------------
+    st.write("### 🧠 AI Insights")
 
-        career_ml = le_c.inverse_transform(prediction)[0]
-        confidence = max(probs) * 100
+    if interest == "Data":
+        st.write("👉 You are inclined towards data-driven roles")
 
-        # -------------------------------
-        # RESULT CARD
-        # -------------------------------
-        st.markdown(f"""
-        <div style="
-            background: linear-gradient(135deg, #6366F1, #8B5CF6);
-            padding:25px;
-            border-radius:15px;
-            color:white;
-            text-align:center;
-        ">
-            <h2>🎯 {career_ml}</h2>
-            <p>Best Career Match for You</p>
-        </div>
-        """, unsafe_allow_html=True)
+    if skill in ["Python", "SQL", "Excel"]:
+        st.write("👉 You have strong analytical/technical skills")
 
-        # -------------------------------
-        # CONFIDENCE
-        # -------------------------------
-        st.write("### 📊 Confidence Score")
-        st.progress(int(confidence))
-        st.write(f"{confidence:.2f}% match")
+    if personality == "Analytical":
+        st.write("👉 Analytical mindset suits problem-solving careers")
 
-        # -------------------------------
-        # PLOTLY CHART (TOP 3)
-        # -------------------------------
-        st.write("### 📊 Career Match Visualization")
+    # ---------------- CAREER INFO ----------------
+    career_info = {
+        "Data Analyst": "Works with data to generate insights and support business decisions.",
+        "Business Analyst": "Bridges business needs with data-driven solutions.",
+        "ML Engineer": "Builds machine learning models and AI systems.",
+        "Marketing Manager": "Handles brand promotion and marketing strategies."
+    }
 
-        top_idx = probs.argsort()[-3:][::-1]
-        careers = [le_c.inverse_transform([i])[0] for i in top_idx]
-        values = [probs[i]*100 for i in top_idx]
+    st.write("### 📘 About this Career")
+    st.info(career_info.get(career_ml, "No description available"))
 
-        chart_df = pd.DataFrame({
-            "Career": careers,
-            "Match %": values
-        })
+    # ---------------- SUMMARY ----------------
+    st.write("### 🎯 Why this fits you")
 
-        fig = px.bar(chart_df, x="Career", y="Match %", title="Top Career Matches")
-        st.plotly_chart(fig)
+    st.write(f"""
+    ✔ Based on your interest in **{interest}**  
+    ✔ Your skill in **{skill}**  
+    ✔ Your **{personality}** personality  
+    👉 This career aligns well with your profile
+    """)
 
-        # -------------------------------
-        # MODEL PERFORMANCE
-        # -------------------------------
-        st.write("### 📈 Model Accuracy")
-        st.write(f"{accuracy*100:.2f}%")
-
-# -------------------------------
-# FOOTER
-# -------------------------------
+# ---------------- FOOTER ----------------
 st.markdown("---")
-st.markdown("""
-    <div style='text-align:center; color:gray;'>
-        ✨ Built by Vaishnavi Nadar • AI Career Recommender
-    </div>
-""", unsafe_allow_html=True)
+st.caption("✨ Built by Vaishnavi Nadar | AI Career Recommender")
