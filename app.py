@@ -1,12 +1,26 @@
 import streamlit as st
 import pandas as pd
+import time
 from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
 
 # ---------------- CONFIG ----------------
 st.set_page_config(page_title="AI Career Guide", page_icon="🤖")
 
-# ---------------- CSS (DARK + LIGHT SAFE) ----------------
+# ---------------- TYPING ANIMATION ----------------
+def type_writer(text, speed=0.02):
+    placeholder = st.empty()
+    typed = ""
+
+    for char in text:
+        typed += char
+        placeholder.markdown(
+            f'<div class="bot-box">{typed}</div>',
+            unsafe_allow_html=True
+        )
+        time.sleep(speed)
+
+# ---------------- CSS ----------------
 st.markdown("""
 <style>
 
@@ -48,7 +62,7 @@ st.markdown("""
     height: 45px;
 }
 
-/* Caption fix */
+/* Caption */
 [data-testid="stCaption"] {
     color: var(--text-color);
 }
@@ -63,7 +77,7 @@ st.caption("Find your best career match in seconds")
 # ---------------- LOAD DATA ----------------
 df = pd.read_csv("career_data.csv")
 
-# ---------------- ML SETUP ----------------
+# ---------------- ML MODEL ----------------
 le_i = LabelEncoder()
 le_s = LabelEncoder()
 le_p = LabelEncoder()
@@ -80,7 +94,7 @@ y = df['Career_enc']
 model = RandomForestClassifier()
 model.fit(X, y)
 
-# ---------------- SESSION ----------------
+# ---------------- SESSION STATE ----------------
 if "step" not in st.session_state:
     st.session_state.step = 1
 
@@ -89,7 +103,7 @@ if st.session_state.step == 1:
     st.markdown('<div class="bot-box">What are you interested in?</div>', unsafe_allow_html=True)
     
     interest = st.selectbox("", df['Interest'].unique())
-    
+
     if st.button("Next"):
         st.session_state.interest = interest
         st.session_state.step = 2
@@ -100,7 +114,7 @@ elif st.session_state.step == 2:
     st.markdown('<div class="bot-box">What is your skill?</div>', unsafe_allow_html=True)
 
     skill = st.selectbox("", df['Skill'].unique())
-    
+
     if st.button("Next"):
         st.session_state.skill = skill
         st.session_state.step = 3
@@ -119,6 +133,7 @@ elif st.session_state.step == 3:
 
 # ---------------- RESULT ----------------
 elif st.session_state.step == 4:
+
     st.markdown(f'<div class="user-box">{st.session_state.interest}</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="user-box">{st.session_state.skill}</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="user-box">{st.session_state.personality}</div>', unsafe_allow_html=True)
@@ -129,13 +144,21 @@ elif st.session_state.step == 4:
         le_p.transform([st.session_state.personality])[0]
     ]]
 
+    # ---------------- PREDICTION ----------------
     pred = model.predict(input_data)
     career = le_c.inverse_transform(pred)[0]
 
-    st.markdown(f'<div class="bot-box">🎯 Your best career is <b>{career}</b></div>', unsafe_allow_html=True)
+    # ---------------- THINKING ----------------
+    with st.spinner("Thinking..."):
+        time.sleep(1)
 
-    # Extra explanation
-    st.markdown('<div class="bot-box">This matches your interest, skill, and personality combination.</div>', unsafe_allow_html=True)
+    # ---------------- TYPING OUTPUT ----------------
+    type_writer(f"🎯 Your best career is {career}")
+
+    type_writer(
+        "This matches your interest, skill, and personality combination.",
+        0.015
+    )
 
     if st.button("🔄 Start Again"):
         st.session_state.step = 1
