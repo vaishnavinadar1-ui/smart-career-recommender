@@ -8,7 +8,52 @@ from sklearn.model_selection import cross_val_score
 # -------------------------------
 # PAGE CONFIG
 # -------------------------------
-st.set_page_config(page_title="AI Career Recommender", page_icon="🚀", layout="centered")
+st.set_page_config(
+    page_title="AI Career Recommender",
+    page_icon="🚀",
+    layout="wide"
+)
+
+# -------------------------------
+# CUSTOM CSS (PROFESSIONAL LOOK + MOBILE FRIENDLY)
+# -------------------------------
+st.markdown("""
+<style>
+    .main {
+        background-color: #0f172a;
+        color: white;
+    }
+
+    h1, h2, h3 {
+        color: #ffffff;
+    }
+
+    .card {
+        background: linear-gradient(135deg, #6366F1, #8B5CF6);
+        padding: 20px;
+        border-radius: 15px;
+        text-align: center;
+        color: white;
+        margin-top: 10px;
+    }
+
+    .stButton>button {
+        width: 100%;
+        border-radius: 10px;
+        background: linear-gradient(90deg, #6366F1, #8B5CF6);
+        color: white;
+        font-weight: bold;
+        padding: 10px;
+    }
+
+    /* Mobile responsiveness */
+    @media only screen and (max-width: 600px) {
+        .block-container {
+            padding: 1rem;
+        }
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # -------------------------------
 # HEADER
@@ -16,7 +61,7 @@ st.set_page_config(page_title="AI Career Recommender", page_icon="🚀", layout=
 st.markdown("""
     <div style='text-align:center'>
         <h1>🚀 AI Career Recommendation System</h1>
-        <p style='color:gray;'>Discover your perfect career using AI</p>
+        <p style='color:gray;'>Find your perfect career with AI</p>
     </div>
 """, unsafe_allow_html=True)
 
@@ -44,7 +89,7 @@ X = df[['Interest_enc','Skill_enc','Personality_enc']]
 y = df['Career_enc']
 
 # -------------------------------
-# MODEL (Random Forest)
+# MODEL
 # -------------------------------
 model = RandomForestClassifier()
 model.fit(X, y)
@@ -52,35 +97,25 @@ model.fit(X, y)
 accuracy = cross_val_score(model, X, y, cv=5).mean()
 
 # -------------------------------
-# INPUT UI
+# INPUT SECTION (MOBILE FRIENDLY STACKING)
 # -------------------------------
 st.markdown("### 🧠 Your Profile")
 
-col1, col2, col3 = st.columns(3)
-
-with col1:
+with st.container():
     interest = st.selectbox("🎯 Interest", df['Interest'].unique())
-
-with col2:
     skill = st.selectbox("💻 Skill", df['Skill'].unique())
-
-with col3:
     personality = st.selectbox("🧩 Personality", df['Personality'].unique())
 
 # -------------------------------
 # BUTTON
 # -------------------------------
-st.markdown("<br>", unsafe_allow_html=True)
-
-center = st.columns([1,2,1])
-with center[1]:
-    clicked = st.button("🚀 Analyze My Career")
+clicked = st.button("🚀 Analyze My Career")
 
 # -------------------------------
 # RESULT
 # -------------------------------
 if clicked:
-    with st.spinner("🤖 AI is analyzing your profile..."):
+    with st.spinner("AI is analyzing your profile..."):
 
         input_data = [[
             le_i.transform([interest])[0],
@@ -98,13 +133,7 @@ if clicked:
         # RESULT CARD
         # -------------------------------
         st.markdown(f"""
-        <div style="
-            background: linear-gradient(135deg, #6366F1, #8B5CF6);
-            padding:25px;
-            border-radius:15px;
-            color:white;
-            text-align:center;
-        ">
+        <div class="card">
             <h2>🎯 {career_ml}</h2>
             <p>Best Career Match for You</p>
         </div>
@@ -113,14 +142,14 @@ if clicked:
         # -------------------------------
         # CONFIDENCE
         # -------------------------------
-        st.write("### 📊 Confidence Score")
+        st.markdown("### 📊 Confidence Score")
         st.progress(int(confidence))
-        st.write(f"{confidence:.2f}% match")
+        st.write(f"**{confidence:.2f}% match**")
 
         # -------------------------------
-        # PLOTLY CHART (TOP 3)
+        # TOP 3 CAREERS
         # -------------------------------
-        st.write("### 📊 Career Match Visualization")
+        st.markdown("### 📊 Career Insights")
 
         top_idx = probs.argsort()[-3:][::-1]
         careers = [le_c.inverse_transform([i])[0] for i in top_idx]
@@ -131,21 +160,17 @@ if clicked:
             "Match %": values
         })
 
-        fig = px.bar(chart_df, x="Career", y="Match %", title="Top Career Matches")
-        st.plotly_chart(fig)
+        fig = px.bar(chart_df, x="Career", y="Match %", text="Match %")
+        st.plotly_chart(fig, use_container_width=True)
 
         # -------------------------------
-        # MODEL PERFORMANCE
+        # MODEL ACCURACY
         # -------------------------------
-        st.write("### 📈 Model Accuracy")
-        st.write(f"{accuracy*100:.2f}%")
+        st.markdown("### 📈 Model Performance")
+        st.write(f"Model Accuracy: **{accuracy*100:.2f}%**")
 
 # -------------------------------
 # FOOTER
 # -------------------------------
 st.markdown("---")
-st.markdown("""
-    <div style='text-align:center; color:gray;'>
-        ✨ Built by Vaishnavi Nadar • AI Career Recommender
-    </div>
-""", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center;color:gray'>✨ Built by Vaishnavi Nadar</p>", unsafe_allow_html=True)
