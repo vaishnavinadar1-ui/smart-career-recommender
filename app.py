@@ -1,83 +1,35 @@
 import streamlit as st
 import pandas as pd
-import time
-import numpy as np
-import matplotlib.pyplot as plt
-
+import plotly.express as px
 from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, confusion_matrix
+from sklearn.model_selection import cross_val_score
 
-# ---------------- CONFIG ----------------
-st.set_page_config(page_title="AI Career Guide", page_icon="🤖")
+# -------------------------------
+# PAGE CONFIG
+# -------------------------------
+st.set_page_config(page_title="AI Career Recommender", page_icon="🚀", layout="centered")
 
-# ---------------- TYPING ANIMATION ----------------
-def type_writer(text, speed=0.02):
-    placeholder = st.empty()
-    typed = ""
-
-    for char in text:
-        typed += char
-        placeholder.markdown(
-            f'<div class="bot-box">{typed}</div>',
-            unsafe_allow_html=True
-        )
-        time.sleep(speed)
-
-# ---------------- CSS ----------------
+# -------------------------------
+# HEADER
+# -------------------------------
 st.markdown("""
-<style>
-
-.block-container {
-    max-width: 500px;
-    padding-top: 2rem;
-}
-
-/* Title */
-.title {
-    font-size: 24px;
-    font-weight: 600;
-    text-align: center;
-    color: var(--text-color);
-}
-
-/* Chat bubbles */
-.user-box {
-    background: #2563eb;
-    color: white;
-    padding: 10px;
-    border-radius: 12px;
-    margin: 6px 0;
-    text-align: right;
-}
-
-.bot-box {
-    background: rgba(128,128,128,0.15);
-    color: var(--text-color);
-    padding: 10px;
-    border-radius: 12px;
-    margin: 6px 0;
-}
-
-/* Button */
-.stButton>button {
-    width: 100%;
-    border-radius: 10px;
-    height: 45px;
-}
-
-</style>
+    <div style='text-align:center'>
+        <h1>🚀 AI Career Recommendation System</h1>
+        <p style='color:gray;'>Discover your perfect career using AI</p>
+    </div>
 """, unsafe_allow_html=True)
 
-# ---------------- TITLE ----------------
-st.markdown('<div class="title">🤖 AI Career Guide</div>', unsafe_allow_html=True)
-st.caption("Find your best career match in seconds")
+st.markdown("---")
 
-# ---------------- LOAD DATA ----------------
+# -------------------------------
+# LOAD DATA
+# -------------------------------
 df = pd.read_csv("career_data.csv")
 
-# ---------------- ENCODERS ----------------
+# -------------------------------
+# ENCODING
+# -------------------------------
 le_i = LabelEncoder()
 le_s = LabelEncoder()
 le_p = LabelEncoder()
@@ -91,109 +43,109 @@ df['Career_enc'] = le_c.fit_transform(df['Career'])
 X = df[['Interest_enc','Skill_enc','Personality_enc']]
 y = df['Career_enc']
 
-# ---------------- TRAIN TEST SPLIT ----------------
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
+# -------------------------------
+# MODEL (Random Forest)
+# -------------------------------
 model = RandomForestClassifier()
-model.fit(X_train, y_train)
+model.fit(X, y)
 
-# ---------------- EVALUATION ----------------
-y_pred = model.predict(X_test)
-accuracy = accuracy_score(y_test, y_pred)
+accuracy = cross_val_score(model, X, y, cv=5).mean()
 
-cm = confusion_matrix(y_test, y_pred)
+# -------------------------------
+# INPUT UI
+# -------------------------------
+st.markdown("### 🧠 Your Profile")
 
-# ---------------- SESSION ----------------
-if "step" not in st.session_state:
-    st.session_state.step = 1
+col1, col2, col3 = st.columns(3)
 
-# ---------------- STEP 1 ----------------
-if st.session_state.step == 1:
-    st.markdown('<div class="bot-box">What are you interested in?</div>', unsafe_allow_html=True)
-    
-    interest = st.selectbox("", df['Interest'].unique())
+with col1:
+    interest = st.selectbox("🎯 Interest", df['Interest'].unique())
 
-    if st.button("Next"):
-        st.session_state.interest = interest
-        st.session_state.step = 2
+with col2:
+    skill = st.selectbox("💻 Skill", df['Skill'].unique())
 
-# ---------------- STEP 2 ----------------
-elif st.session_state.step == 2:
-    st.markdown(f'<div class="user-box">{st.session_state.interest}</div>', unsafe_allow_html=True)
-    st.markdown('<div class="bot-box">What is your skill?</div>', unsafe_allow_html=True)
+with col3:
+    personality = st.selectbox("🧩 Personality", df['Personality'].unique())
 
-    skill = st.selectbox("", df['Skill'].unique())
+# -------------------------------
+# BUTTON
+# -------------------------------
+st.markdown("<br>", unsafe_allow_html=True)
 
-    if st.button("Next"):
-        st.session_state.skill = skill
-        st.session_state.step = 3
+center = st.columns([1,2,1])
+with center[1]:
+    clicked = st.button("🚀 Analyze My Career")
 
-# ---------------- STEP 3 ----------------
-elif st.session_state.step == 3:
-    st.markdown(f'<div class="user-box">{st.session_state.interest}</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="user-box">{st.session_state.skill}</div>', unsafe_allow_html=True)
-    st.markdown('<div class="bot-box">What is your personality?</div>', unsafe_allow_html=True)
+# -------------------------------
+# RESULT
+# -------------------------------
+if clicked:
+    with st.spinner("🤖 AI is analyzing your profile..."):
 
-    personality = st.selectbox("", df['Personality'].unique())
+        input_data = [[
+            le_i.transform([interest])[0],
+            le_s.transform([skill])[0],
+            le_p.transform([personality])[0]
+        ]]
 
-    if st.button("Get Result"):
-        st.session_state.personality = personality
-        st.session_state.step = 4
+        prediction = model.predict(input_data)
+        probs = model.predict_proba(input_data)[0]
 
-# ---------------- RESULT ----------------
-elif st.session_state.step == 4:
+        career_ml = le_c.inverse_transform(prediction)[0]
+        confidence = max(probs) * 100
 
-    st.markdown(f'<div class="user-box">{st.session_state.interest}</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="user-box">{st.session_state.skill}</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="user-box">{st.session_state.personality}</div>', unsafe_allow_html=True)
+        # -------------------------------
+        # RESULT CARD
+        # -------------------------------
+        st.markdown(f"""
+        <div style="
+            background: linear-gradient(135deg, #6366F1, #8B5CF6);
+            padding:25px;
+            border-radius:15px;
+            color:white;
+            text-align:center;
+        ">
+            <h2>🎯 {career_ml}</h2>
+            <p>Best Career Match for You</p>
+        </div>
+        """, unsafe_allow_html=True)
 
-    input_data = [[
-        le_i.transform([st.session_state.interest])[0],
-        le_s.transform([st.session_state.skill])[0],
-        le_p.transform([st.session_state.personality])[0]
-    ]]
+        # -------------------------------
+        # CONFIDENCE
+        # -------------------------------
+        st.write("### 📊 Confidence Score")
+        st.progress(int(confidence))
+        st.write(f"{confidence:.2f}% match")
 
-    # ---------------- PREDICTION ----------------
-    pred = model.predict(input_data)
-    proba = model.predict_proba(input_data)
+        # -------------------------------
+        # PLOTLY CHART (TOP 3)
+        # -------------------------------
+        st.write("### 📊 Career Match Visualization")
 
-    career = le_c.inverse_transform(pred)[0]
-    confidence = np.max(proba) * 100
+        top_idx = probs.argsort()[-3:][::-1]
+        careers = [le_c.inverse_transform([i])[0] for i in top_idx]
+        values = [probs[i]*100 for i in top_idx]
 
-    # ---------------- THINKING ----------------
-    with st.spinner("Analyzing your profile..."):
-        time.sleep(1)
+        chart_df = pd.DataFrame({
+            "Career": careers,
+            "Match %": values
+        })
 
-    # ---------------- RESULT ----------------
-    type_writer(f"🎯 Your best career is {career} ({confidence:.1f}% match)")
+        fig = px.bar(chart_df, x="Career", y="Match %", title="Top Career Matches")
+        st.plotly_chart(fig)
 
-    # ---------------- AI EXPLANATION ----------------
-    explanation = f"""
-    💡 Why this career?
+        # -------------------------------
+        # MODEL PERFORMANCE
+        # -------------------------------
+        st.write("### 📈 Model Accuracy")
+        st.write(f"{accuracy*100:.2f}%")
 
-    ✔ Your interest in {st.session_state.interest} aligns with this role  
-    ✔ Your skill in {st.session_state.skill} is highly relevant  
-    ✔ Your personality fits the working style of this career  
-    ✔ Based on historical data patterns, this combination performs strongly
-    """
-
-    type_writer(explanation, 0.01)
-
-    # ---------------- MODEL ACCURACY ----------------
-    st.markdown("### 📊 Model Performance")
-    st.write(f"✅ Accuracy: **{accuracy*100:.2f}%**")
-
-    # ---------------- CONFUSION MATRIX ----------------
-    fig, ax = plt.subplots()
-    ax.imshow(cm)
-    ax.set_title("Confusion Matrix")
-    ax.set_xlabel("Predicted")
-    ax.set_ylabel("Actual")
-    st.pyplot(fig)
-
-    if st.button("🔄 Start Again"):
-        st.session_state.step = 1
-
-# ---------------- FOOTER ----------------
+# -------------------------------
+# FOOTER
+# -------------------------------
 st.markdown("---")
-st.caption("✨ Built by Vaishnavi Nadar")
+st.markdown("""
+    <div style='text-align:center; color:gray;'>
+        ✨ Built by Vaishnavi Nadar • AI Career Recommender
+    </div>
+""", unsafe_allow_html=True)
