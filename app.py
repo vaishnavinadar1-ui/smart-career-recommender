@@ -1,14 +1,8 @@
 import streamlit as st
 import pandas as pd
 import time
-import numpy as np
-st.write("### 📊 Confusion Matrix")
-st.dataframe(cm)
-
 from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, confusion_matrix
 
 # ---------------- CONFIG ----------------
 st.set_page_config(page_title="AI Career Guide", page_icon="🤖")
@@ -68,6 +62,11 @@ st.markdown("""
     height: 45px;
 }
 
+/* Caption */
+[data-testid="stCaption"] {
+    color: var(--text-color);
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -78,7 +77,7 @@ st.caption("Find your best career match in seconds")
 # ---------------- LOAD DATA ----------------
 df = pd.read_csv("career_data.csv")
 
-# ---------------- ENCODERS ----------------
+# ---------------- ML MODEL ----------------
 le_i = LabelEncoder()
 le_s = LabelEncoder()
 le_p = LabelEncoder()
@@ -92,19 +91,10 @@ df['Career_enc'] = le_c.fit_transform(df['Career'])
 X = df[['Interest_enc','Skill_enc','Personality_enc']]
 y = df['Career_enc']
 
-# ---------------- TRAIN TEST SPLIT ----------------
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
 model = RandomForestClassifier()
-model.fit(X_train, y_train)
+model.fit(X, y)
 
-# ---------------- EVALUATION ----------------
-y_pred = model.predict(X_test)
-accuracy = accuracy_score(y_test, y_pred)
-
-cm = confusion_matrix(y_test, y_pred)
-
-# ---------------- SESSION ----------------
+# ---------------- SESSION STATE ----------------
 if "step" not in st.session_state:
     st.session_state.step = 1
 
@@ -156,41 +146,19 @@ elif st.session_state.step == 4:
 
     # ---------------- PREDICTION ----------------
     pred = model.predict(input_data)
-    proba = model.predict_proba(input_data)
-
     career = le_c.inverse_transform(pred)[0]
-    confidence = np.max(proba) * 100
 
     # ---------------- THINKING ----------------
-    with st.spinner("Analyzing your profile..."):
+    with st.spinner("Thinking..."):
         time.sleep(1)
 
-    # ---------------- RESULT ----------------
-    type_writer(f"🎯 Your best career is {career} ({confidence:.1f}% match)")
+    # ---------------- TYPING OUTPUT ----------------
+    type_writer(f"🎯 Your best career is {career}")
 
-    # ---------------- AI EXPLANATION ----------------
-    explanation = f"""
-    💡 Why this career?
-
-    ✔ Your interest in {st.session_state.interest} aligns with this role  
-    ✔ Your skill in {st.session_state.skill} is highly relevant  
-    ✔ Your personality fits the working style of this career  
-    ✔ Based on historical data patterns, this combination performs strongly
-    """
-
-    type_writer(explanation, 0.01)
-
-    # ---------------- MODEL ACCURACY ----------------
-    st.markdown("### 📊 Model Performance")
-    st.write(f"✅ Accuracy: **{accuracy*100:.2f}%**")
-
-    # ---------------- CONFUSION MATRIX ----------------
-    fig, ax = plt.subplots()
-    ax.imshow(cm)
-    ax.set_title("Confusion Matrix")
-    ax.set_xlabel("Predicted")
-    ax.set_ylabel("Actual")
-    st.pyplot(fig)
+    type_writer(
+        "This matches your interest, skill, and personality combination.",
+        0.015
+    )
 
     if st.button("🔄 Start Again"):
         st.session_state.step = 1
@@ -198,3 +166,4 @@ elif st.session_state.step == 4:
 # ---------------- FOOTER ----------------
 st.markdown("---")
 st.caption("✨ Built by Vaishnavi Nadar")
+ 
