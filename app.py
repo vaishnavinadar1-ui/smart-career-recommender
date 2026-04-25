@@ -1,37 +1,29 @@
 import streamlit as st
 import pandas as pd
-import time
 from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
 
 # ---------------- CONFIG ----------------
-st.set_page_config(page_title="AI Career Guide", page_icon="🤖", layout="centered")
+st.set_page_config(page_title="AI Career Guide", page_icon="🤖")
 
-# ---------------- TYPING ANIMATION ----------------
-def type_writer(text, speed=0.02):
-    placeholder = st.empty()
-    typed = ""
-
-    for char in text:
-        typed += char
-        placeholder.markdown(f'<div class="bot-box">{typed}</div>', unsafe_allow_html=True)
-        time.sleep(speed)
-
-# ---------------- CSS ----------------
+# ---------------- CSS (DARK + LIGHT SAFE) ----------------
 st.markdown("""
 <style>
 
 .block-container {
-    max-width: 600px;
+    max-width: 500px;
     padding-top: 2rem;
 }
 
+/* Title */
 .title {
-    font-size: 26px;
-    font-weight: 700;
+    font-size: 24px;
+    font-weight: 600;
     text-align: center;
+    color: var(--text-color);
 }
 
+/* Chat bubbles */
 .user-box {
     background: #2563eb;
     color: white;
@@ -43,15 +35,22 @@ st.markdown("""
 
 .bot-box {
     background: rgba(128,128,128,0.15);
+    color: var(--text-color);
     padding: 10px;
     border-radius: 12px;
     margin: 6px 0;
 }
 
+/* Button */
 .stButton>button {
     width: 100%;
     border-radius: 10px;
     height: 45px;
+}
+
+/* Caption fix */
+[data-testid="stCaption"] {
+    color: var(--text-color);
 }
 
 </style>
@@ -59,12 +58,12 @@ st.markdown("""
 
 # ---------------- TITLE ----------------
 st.markdown('<div class="title">🤖 AI Career Guide</div>', unsafe_allow_html=True)
-st.caption("Find your best career match instantly")
+st.caption("Find your best career match in seconds")
 
 # ---------------- LOAD DATA ----------------
 df = pd.read_csv("career_data.csv")
 
-# ---------------- LABEL ENCODING ----------------
+# ---------------- ML SETUP ----------------
 le_i = LabelEncoder()
 le_s = LabelEncoder()
 le_p = LabelEncoder()
@@ -75,42 +74,22 @@ df['Skill_enc'] = le_s.fit_transform(df['Skill'])
 df['Personality_enc'] = le_p.fit_transform(df['Personality'])
 df['Career_enc'] = le_c.fit_transform(df['Career'])
 
-X = df[['Interest_enc', 'Skill_enc', 'Personality_enc']]
+X = df[['Interest_enc','Skill_enc','Personality_enc']]
 y = df['Career_enc']
 
-# ---------------- MODEL ----------------
-model = RandomForestClassifier(
-    n_estimators=200,
-    random_state=42,
-    class_weight="balanced"
-)
+model = RandomForestClassifier()
 model.fit(X, y)
 
-# ---------------- SMART RULE SYSTEM (IMPORTANT FIX) ----------------
-def rule_based_career(skill):
-    skill = skill.lower()
-
-    if "power bi" in skill:
-        return "Power BI Analyst"
-    elif "excel" in skill:
-        return "MIS Analyst"
-    elif "python" in skill:
-        return "Data Scientist"
-    elif "sql" in skill:
-        return "Data Analyst"
-    else:
-        return None  # fallback to ML
-
-# ---------------- SESSION STATE ----------------
+# ---------------- SESSION ----------------
 if "step" not in st.session_state:
     st.session_state.step = 1
 
 # ---------------- STEP 1 ----------------
 if st.session_state.step == 1:
     st.markdown('<div class="bot-box">What are you interested in?</div>', unsafe_allow_html=True)
-
+    
     interest = st.selectbox("", df['Interest'].unique())
-
+    
     if st.button("Next"):
         st.session_state.interest = interest
         st.session_state.step = 2
@@ -121,7 +100,7 @@ elif st.session_state.step == 2:
     st.markdown('<div class="bot-box">What is your skill?</div>', unsafe_allow_html=True)
 
     skill = st.selectbox("", df['Skill'].unique())
-
+    
     if st.button("Next"):
         st.session_state.skill = skill
         st.session_state.step = 3
@@ -140,68 +119,23 @@ elif st.session_state.step == 3:
 
 # ---------------- RESULT ----------------
 elif st.session_state.step == 4:
-
     st.markdown(f'<div class="user-box">{st.session_state.interest}</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="user-box">{st.session_state.skill}</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="user-box">{st.session_state.personality}</div>', unsafe_allow_html=True)
 
-    skill = st.session_state.skill.lower()
-    interest = st.session_state.interest.lower()
+    input_data = [[
+        le_i.transform([st.session_state.interest])[0],
+        le_s.transform([st.session_state.skill])[0],
+        le_p.transform([st.session_state.personality])[0]
+    ]]
 
-    # ---------------- SMART CAREER ENGINE ----------------
-    if "power bi" in skill:
-        career = "Power BI Analyst"
+    pred = model.predict(input_data)
+    career = le_c.inverse_transform(pred)[0]
 
-    elif "excel" in skill:
-        career = "MIS Analyst / Reporting Analyst"
+    st.markdown(f'<div class="bot-box">🎯 Your best career is <b>{career}</b></div>', unsafe_allow_html=True)
 
-    elif "python" in skill:
-        career = "Data Scientist / ML Engineer"
-
-    elif "sql" in skill:
-        career = "Data Analyst"
-
-    elif "finance" in interest:
-        career = "Financial Analyst"
-
-    elif "marketing" in interest:
-        career = "Digital Marketing Analyst"
-
-    else:
-        career = "Business Analyst"
-
-    # ---------------- OUTPUT ----------------
-    with st.spinner("Analyzing your profile..."):
-        time.sleep(1)
-
-    type_writer(f"🎯 Your best career is: {career}")
-    type_writer("Based on your skills + interest + personality match.", 0.02)
-
-    if st.button("🔄 Start Again"):
-        st.session_state.step = 1
-    # ---------------- RULE FIRST (FIX) ----------------
-    career = rule_based_career(st.session_state.skill)
-
-    # ---------------- IF RULE FAILS → ML ----------------
-    if career is None:
-
-        input_data = [[
-            le_i.transform([st.session_state.interest])[0],
-            le_s.transform([st.session_state.skill])[0],
-            le_p.transform([st.session_state.personality])[0]
-        ]]
-
-        pred = model.predict(input_data)
-        career = le_c.inverse_transform(pred)[0]
-
-    # ---------------- THINKING ----------------
-    with st.spinner("Analyzing your profile..."):
-        time.sleep(1)
-
-    # ---------------- OUTPUT ----------------
-    type_writer(f"🎯 Your best career is: {career}")
-
-    type_writer("This is based on your interest, skill and personality match.", 0.015)
+    # Extra explanation
+    st.markdown('<div class="bot-box">This matches your interest, skill, and personality combination.</div>', unsafe_allow_html=True)
 
     if st.button("🔄 Start Again"):
         st.session_state.step = 1
