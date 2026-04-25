@@ -6,12 +6,13 @@ from sklearn.ensemble import RandomForestClassifier
 # ---------------- CONFIG ----------------
 st.set_page_config(page_title="AI Career Guide", page_icon="🤖")
 
-# ---------------- STYLE ----------------
+# ---------------- CSS (DARK + LIGHT SAFE) ----------------
 st.markdown("""
 <style>
+
 .block-container {
-    padding-top: 2rem;
     max-width: 500px;
+    padding-top: 2rem;
 }
 
 /* Title */
@@ -19,6 +20,7 @@ st.markdown("""
     font-size: 24px;
     font-weight: 600;
     text-align: center;
+    color: var(--text-color);
 }
 
 /* Chat bubbles */
@@ -27,15 +29,16 @@ st.markdown("""
     color: white;
     padding: 10px;
     border-radius: 12px;
-    margin: 5px 0;
+    margin: 6px 0;
     text-align: right;
 }
 
 .bot-box {
-    background: #f1f5f9;
+    background: rgba(128,128,128,0.15);
+    color: var(--text-color);
     padding: 10px;
     border-radius: 12px;
-    margin: 5px 0;
+    margin: 6px 0;
 }
 
 /* Button */
@@ -44,6 +47,12 @@ st.markdown("""
     border-radius: 10px;
     height: 45px;
 }
+
+/* Caption fix */
+[data-testid="stCaption"] {
+    color: var(--text-color);
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -54,18 +63,18 @@ st.caption("Find your best career match in seconds")
 # ---------------- LOAD DATA ----------------
 df = pd.read_csv("career_data.csv")
 
-# ---------------- ML ----------------
-le_interest = LabelEncoder()
-le_skill = LabelEncoder()
-le_personality = LabelEncoder()
-le_career = LabelEncoder()
+# ---------------- ML SETUP ----------------
+le_i = LabelEncoder()
+le_s = LabelEncoder()
+le_p = LabelEncoder()
+le_c = LabelEncoder()
 
-df['Interest_enc'] = le_interest.fit_transform(df['Interest'])
-df['Skill_enc'] = le_skill.fit_transform(df['Skill'])
-df['Personality_enc'] = le_personality.fit_transform(df['Personality'])
-df['Career_enc'] = le_career.fit_transform(df['Career'])
+df['Interest_enc'] = le_i.fit_transform(df['Interest'])
+df['Skill_enc'] = le_s.fit_transform(df['Skill'])
+df['Personality_enc'] = le_p.fit_transform(df['Personality'])
+df['Career_enc'] = le_c.fit_transform(df['Career'])
 
-X = df[['Interest_enc', 'Skill_enc', 'Personality_enc']]
+X = df[['Interest_enc','Skill_enc','Personality_enc']]
 y = df['Career_enc']
 
 model = RandomForestClassifier()
@@ -114,17 +123,23 @@ elif st.session_state.step == 4:
     st.markdown(f'<div class="user-box">{st.session_state.skill}</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="user-box">{st.session_state.personality}</div>', unsafe_allow_html=True)
 
-    # Prediction
     input_data = [[
-        le_interest.transform([st.session_state.interest])[0],
-        le_skill.transform([st.session_state.skill])[0],
-        le_personality.transform([st.session_state.personality])[0]
+        le_i.transform([st.session_state.interest])[0],
+        le_s.transform([st.session_state.skill])[0],
+        le_p.transform([st.session_state.personality])[0]
     ]]
 
     pred = model.predict(input_data)
-    career = le_career.inverse_transform(pred)[0]
+    career = le_c.inverse_transform(pred)[0]
 
     st.markdown(f'<div class="bot-box">🎯 Your best career is <b>{career}</b></div>', unsafe_allow_html=True)
 
-    if st.button("Start Again"):
+    # Extra explanation
+    st.markdown('<div class="bot-box">This matches your interest, skill, and personality combination.</div>', unsafe_allow_html=True)
+
+    if st.button("🔄 Start Again"):
         st.session_state.step = 1
+
+# ---------------- FOOTER ----------------
+st.markdown("---")
+st.caption("✨ Built by Vaishnavi Nadar")
