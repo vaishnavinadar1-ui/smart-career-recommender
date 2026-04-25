@@ -2,7 +2,8 @@ import streamlit as st
 import pandas as pd
 import time
 import numpy as np
-import matplotlib.pyplot as plt
+st.write("### 📊 Confusion Matrix")
+st.dataframe(cm)
 
 from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
