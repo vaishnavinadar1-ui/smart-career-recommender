@@ -145,6 +145,40 @@ elif st.session_state.step == 4:
     st.markdown(f'<div class="user-box">{st.session_state.skill}</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="user-box">{st.session_state.personality}</div>', unsafe_allow_html=True)
 
+    skill = st.session_state.skill.lower()
+    interest = st.session_state.interest.lower()
+
+    # ---------------- SMART CAREER ENGINE ----------------
+    if "power bi" in skill:
+        career = "Power BI Analyst"
+
+    elif "excel" in skill:
+        career = "MIS Analyst / Reporting Analyst"
+
+    elif "python" in skill:
+        career = "Data Scientist / ML Engineer"
+
+    elif "sql" in skill:
+        career = "Data Analyst"
+
+    elif "finance" in interest:
+        career = "Financial Analyst"
+
+    elif "marketing" in interest:
+        career = "Digital Marketing Analyst"
+
+    else:
+        career = "Business Analyst"
+
+    # ---------------- OUTPUT ----------------
+    with st.spinner("Analyzing your profile..."):
+        time.sleep(1)
+
+    type_writer(f"🎯 Your best career is: {career}")
+    type_writer("Based on your skills + interest + personality match.", 0.02)
+
+    if st.button("🔄 Start Again"):
+        st.session_state.step = 1
     # ---------------- RULE FIRST (FIX) ----------------
     career = rule_based_career(st.session_state.skill)
 
